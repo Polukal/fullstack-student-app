@@ -1,9 +1,10 @@
 from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.schemas import Paginated
 
 from app.db import get_async_session
 from app.models import Course
@@ -32,14 +33,17 @@ async def create_course(
     return course
 
 
-@router.get("", response_model=List[CourseRead], dependencies=[Depends(current_active_user)])
+@router.get("", response_model=Paginated[CourseRead], dependencies=[Depends(current_active_user)])
 async def list_courses(
-    page: int = 1, size: int = 10,
-    session: AsyncSession = Depends(get_async_session)
+    page: int = 1,
+    size: int = 10,
+    session: AsyncSession = Depends(get_async_session),
 ):
+    total = await session.scalar(select(func.count()).select_from(Course))
     stmt = select(Course).offset((page - 1) * size).limit(size)
-    result = await session.execute(stmt)
-    return result.scalars().all()
+    rows = await session.execute(stmt)
+    return Paginated[CourseRead](items=rows.scalars().all(), total=total, page=page, size=size)
+
 
 
 @router.delete(

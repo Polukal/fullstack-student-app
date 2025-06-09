@@ -5,7 +5,7 @@ from sqlalchemy import select, delete, update
 
 from app.db import get_async_session
 from app.models import Student
-from app.schemas import StudentCreate, StudentRead
+from app.schemas import StudentCreate, StudentRead, Paginated
 from app.auth import current_active_admin, current_active_user
 
 router = APIRouter(prefix="/students", tags=["students"])
@@ -23,14 +23,17 @@ async def create_student(
     await session.refresh(obj)
     return obj
 
-@router.get("", response_model=list[StudentRead])
+@router.get("", response_model=Paginated[StudentRead], dependencies=[Depends(current_active_admin)])
 async def list_students(
-    page: int = 1, size: int = 10,
+    page: int = 1,
+    size: int = 10,
     session: AsyncSession = Depends(get_async_session),
-    _admin=Depends(current_active_admin),
 ):
-    q = await session.execute(select(Student).offset((page-1)*size).limit(size))
-    return q.scalars().all()
+    total = await session.scalar(select(func.count()).select_from(Student))
+    stmt = select(Student).offset((page - 1) * size).limit(size)
+    rows = await session.execute(stmt)
+    return Paginated[StudentRead](items=rows.scalars().all(), total=total, page=page, size=size)
+
 
 # Student sees/edits own profile
 @router.get("/me", response_model=StudentRead)
