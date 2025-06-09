@@ -5,6 +5,10 @@ Thumbs.db
 .vscode/
 *.swp
 
+# Local env & secrets
+.env
+.env.*    # e.g. .env.local, .env.dev
+
 # ────────── Python ──────────
 # virtual-envs
 venv/

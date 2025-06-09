@@ -10,3 +10,5 @@ passlib[bcrypt]
 python-jose[cryptography]
 pydantic>=2.7
 pydantic-settings>=2.2
+python-dotenv>=1.0.1
+slowapi>=0.1.8
